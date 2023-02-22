@@ -1,106 +1,74 @@
 #include "shell.h"
 
 /**
- * get_file_path - get PATH
- * @name: name of command
- * Return: a full path of name or name it self on failure
+ * interactive - returns true if shell is interactive mode
+ * @info: struct address
+ *
+ * Return: 1 if interactive mode, 0 otherwise
  */
-
-char *get_file_path(char *name)
+int interactive(info_t *info)
 {
-	char *PATH = _getenv("PATH"), *fpath = NULL;
-	char *tokenized = _strtok(PATH, ":", 0);
-	struct stat fileinfo;
-
-	if (!name)
-		return (NULL);
-	if (*name == '/' || *name == '.')
-	{
-		fpath = _malloc(_strlen(name) * sizeof(char) + 1);
-		_strcpy(fpath, name);
-		return (fpath);
-	}
-	while (tokenized)
-	{
-		fpath = _malloc((_strlen(tokenized) + _strlen(name) + 1) * sizeof(char) + 1);
-		_strcpy(fpath, tokenized);
-		_strcat(fpath, "/");
-		_strcat(fpath, name);
-		if (!stat(fpath, &fileinfo))
-			return (fpath);
-		free(fpath);
-		tokenized = _strtok(NULL, ":", 0);
-	}
-	fpath = _malloc(_strlen(name) * sizeof(char) + 1);
-	_strcpy(fpath, name);
-	return (fpath);
+	return (isatty(STDIN_FILENO) && info->readfd <= 2);
 }
 
 /**
- * parse_args - handle arguments
- * @cmd: tokenized string with arguments
- * @del: delimeter
- * @args: argument vector
- * @mod: delimeter method 0-character 1-string
- *
- * Return: none
+ * is_delim - checks if character is a delimeter
+ * @c: the char to check
+ * @delim: the delimeter string
+ * Return: 1 if true, 0 if false
+ */
+int is_delim(char c, char *delim)
+{
+	while (*delim)
+		if (*delim++ == c)
+			return (1);
+	return (0);
+}
+
+/**
+ * _isalpha - checks for alphabetic character
+ * @c: The character to input
+ * Return: 1 if c is alphabetic, 0 otherwise
  */
 
-void parse_args(char *cmd, const char *del, char ***args, int mod)
+int _isalpha(int c)
 {
-	char *tokenized = NULL, **tmp;
-	int index = 0, i;
+	if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
+		return (1);
+	else
+		return (0);
+}
 
-	*args = NULL;
-	tokenized = _strtok(cmd, del, mod);
-	while (tokenized != NULL)
+/**
+ * _atoi - converts a string to an integer
+ * @s: the string to be converted
+ * Return: 0 if no numbers in string, converted number otherwise
+ */
+
+int _atoi(char *s)
+{
+	int i, sign = 1, flag = 0, output;
+	unsigned int result = 0;
+
+	for (i = 0;  s[i] != '\0' && flag != 2; i++)
 	{
-		tmp = (char **)_malloc((_arlen(*args) +  2) * sizeof(char *));
-		if (!*args)
-			*args = tmp;
-		else
+		if (s[i] == '-')
+			sign *= -1;
+
+		if (s[i] >= '0' && s[i] <= '9')
 		{
-			i = 0;
-			while ((*args)[i])
-			{
-				tmp[i] = _strdup((*args)[i]);
-				i++;
-			}
-			free_pp(*args);
-			*args = tmp;
+			flag = 1;
+			result *= 10;
+			result += (s[i] - '0');
 		}
-		(*args)[index] = NULL;
-		trim_spaces(&((*args)[index]), tokenized);
-		(*args)[index + 1] = NULL;
-		tokenized = _strtok(NULL, del, mod);
-		index++;
+		else if (flag == 1)
+			flag = 2;
 	}
-}
 
-/**
- * get_input - gets input from the cli
- * @input: pointer to input string
- * @inputlen: pointer to input len
- * @cmds: pointer to array of arguments
- * @fd: file discriptor
- *
- * Return: lenght of input
- */
+	if (sign == -1)
+		output = -result;
+	else
+		output = result;
 
-int get_input(char **input, size_t *inputlen, char ***cmds, int fd)
-{
-	int len;
-
-	if (isatty(0) && !fd)
-		write(1, "$ ", 2);
-	len = _getline(input, inputlen, fd);
-	if (len == -1)
-	{
-		free(*input);
-		write(1, "\n", 1);
-		exit(0);
-	}
-	(*input)[len - 1] = '\0';
-	parse_args(*input, ";", cmds, 0);
-	return (len - 1);
+	return (output);
 }
